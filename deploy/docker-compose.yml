@@ -1,0 +1,54 @@
+# collaboration_tool_solution/team_collab/deploy/docker-compose.yml
+version: '3.8'
+
+services:
+  # Redis: LiveKit 房间多节点状态缓存与信令同步总线
+  redis:
+    image: redis:7.2-alpine
+    container_name: reati_wire_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass reati_wire_redis_secret
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - collab_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # LiveKit SFU: 多人在线会议选择性转发单元
+  livekit:
+    image: livekit/livekit-server:v1.6.0
+    container_name: reati_wire_livekit
+    restart: unless-stopped
+    depends_on:
+      - redis
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"             # HTTP 信令与 WebRTC WebSocket 控制通道
+      - "7881:7881"             # WebRTC TCP Fallback 备用端口
+      - "50000-50050:50000-50050/udp" # WebRTC UDP 媒体传输端口池 (已缩减至20人适配范围)
+    environment:
+      - LIVEKIT_KEYS=reati_wire_api_key:reati_wire_api_secret_32bytes_min
+      - REDIS_ADDRESS=redis:6379
+      - REDIS_PASSWORD=reati_wire_redis_secret
+    networks:
+      - collab_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  redis_data:
+
+networks:
+  collab_net:
+    driver: bridge

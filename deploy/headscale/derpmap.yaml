@@ -1,0 +1,15 @@
+# collaboration_tool_solution/team_collab/deploy/headscale/derpmap.yaml
+# 私有自建 DERP 与 STUN 节点定义 (Region 901)
+regions:
+  901:
+    regionid: 901
+    regioncode: cqq-prv
+    regionname: "Chongqing Private Relay & STUN"
+    nodes:
+      - name: 901a
+        regionid: 901
+        hostname: "derp.team-collab.local"
+        ipv4: "1.2.3.4" # 替换为实际 VPS 公网 IP
+        stunport: 3478
+        stunonly: false
+        derpport: 443

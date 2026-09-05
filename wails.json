@@ -1,0 +1,20 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "reati_wire",
+  "outputfilename": "reati_wire.exe",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Reaticle",
+    "email": "dev@reaticle.local"
+  },
+  "info": {
+    "companyName": "Reaticle Workspace",
+    "productName": "ReatiWire All-in-One Client",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2026",
+    "comments": "20-person private IM and meeting collaboration tool with embedded tsnet"
+  }
+}

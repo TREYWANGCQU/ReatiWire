@@ -1,0 +1,42 @@
+# collaboration_tool_solution/team_collab/deploy/livekit.yaml
+port: 7880
+bind_addresses:
+  - ""
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50050
+  use_external_ip: true
+  enable_loopback_candidate: false
+
+# 密钥与鉴权配置 (生产环境请通过环境变量 LIVEKIT_KEYS 覆盖)
+keys:
+  reati_wire_api_key: reati_wire_api_secret_32bytes_min
+
+logging:
+  json: true
+  level: info
+
+room:
+  # 自动销毁空房间时间 (秒)
+  empty_timeout: 300
+  # 20人轻量小团队容量上限与全员视频保护
+  max_participants: 25
+  # 开启 Dynacast: 仅当下行参会者屏幕可视时下发视频流
+  enable_dynacast: true
+
+audio:
+  # 开启 WebRTC VAD 静音抑制，每人仅下发当前声量最高的 <= 3 路音频，避免全量广播占用上行
+  active_audio_filter: true
+  max_active_speakers: 3
+
+video:
+  # 开启 Simulcast 分层编码 (180p / 360p / 720p / 1080p)
+  # 小窗口自动订阅 180p (80 kbps)，避免 20 人全开视频冲击 100M 上下行瓶颈
+  simulcast: true
+  dynacast_pause_delay: 5s
+
+limit:
+  # 服务端出口带宽保护阈值: 85 Mbps (针对 100M VPS 留出 15% 安全余量)
+  egress_bandwidth: 85000000

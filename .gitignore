@@ -1,0 +1,23 @@
+# collaboration_tool_solution/team_collab/.gitignore
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.bin
+
+# Test binaries
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Node dependencies
+node_modules/
+dist/
+.vite/
+
+# Temp storage
+team_collab_downloads/
+team_collab_tsnet/
+team_collab_transfers/

@@ -1,0 +1,280 @@
+<!-- collaboration_tool_solution/team_collab/frontend/index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ReatiWire - 20人轻量小团队私有 IM 与在线会议协同系统，基于用户态 tsnet 网络协议栈，支持零驱动直连打洞、3秒硬熔断降级与开发者目标服务器访问">
+  <title>ReatiWire - 私有协同通信与研发直连工作台</title>
+  <link rel="stylesheet" href="./src/index.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app" class="app-layout">
+    <!-- 顶部核心网络状态横栏 -->
+    <header class="app-header">
+      <div class="brand-block">
+        <div class="brand-logo">RW</div>
+        <div class="brand-info">
+          <h1 class="brand-title">ReatiWire</h1>
+          <span class="brand-subtitle">私有协同通信与研发网关</span>
+        </div>
+      </div>
+
+      <div class="status-ribbon">
+        <div class="ribbon-card" id="status-node-ip">
+          <span class="ribbon-label">虚拟 IP</span>
+          <span class="ribbon-value text-emerald" id="val-virtual-ip">100.64.0.5</span>
+        </div>
+        <div class="ribbon-card" id="status-tsnet">
+          <span class="ribbon-label">用户态网络 (tsnet)</span>
+          <span class="ribbon-value text-sky" id="val-tsnet-state">已连通 (免提权)</span>
+        </div>
+        <div class="ribbon-card" id="status-socks5">
+          <span class="ribbon-label">本地研发代理 (1055)</span>
+          <span class="ribbon-value text-amber" id="val-socks5-state">运行中 (127.0.0.1:1055)</span>
+        </div>
+        <div class="ribbon-card" id="status-circuit">
+          <span class="ribbon-label">打洞熔断基线</span>
+          <span class="ribbon-value text-indigo" id="val-circuit-state">T_timeout ≤ 3000ms</span>
+        </div>
+        <div class="ribbon-action">
+          <button id="btn-toggle-proxy" class="btn btn-sm btn-outline">重启本地代理</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主体工作区容器 -->
+    <div class="app-body">
+      <!-- 侧边主导航栏 -->
+      <nav class="side-nav">
+        <ul class="nav-list">
+          <li class="nav-item active" data-tab="tab-im" id="nav-tab-im">
+            <span class="nav-icon">💬</span>
+            <span class="nav-text">即时通讯 (IM)</span>
+          </li>
+          <li class="nav-item" data-tab="tab-transfer" id="nav-tab-transfer">
+            <span class="nav-icon">📁</span>
+            <span class="nav-text">大文件直传 (P2P)</span>
+          </li>
+          <li class="nav-item" data-tab="tab-meeting" id="nav-tab-meeting">
+            <span class="nav-icon">📹</span>
+            <span class="nav-text">在线会议 (LiveKit)</span>
+          </li>
+          <li class="nav-item" data-tab="tab-dev" id="nav-tab-dev">
+            <span class="nav-icon">🛠️</span>
+            <span class="nav-text">开发者工具箱</span>
+          </li>
+        </ul>
+
+        <div class="side-footer">
+          <div class="vps-metric-card">
+            <div class="metric-title">VPS 出口安全红线</div>
+            <div class="metric-bar-wrap">
+              <div class="metric-bar" id="vps-metric-bar" style="width: 36%;"></div>
+            </div>
+            <div class="metric-caption">当前预估: <strong id="vps-metric-val">30.9 Mbps</strong> / 85M 警戒</div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- 主视图渲染区 -->
+      <main class="main-content">
+        <!-- 面板 1: 即时通讯 -->
+        <section id="tab-im" class="tab-pane active">
+          <div class="im-layout">
+            <div class="peer-sidebar">
+              <div class="pane-header">
+                <h3>团队成员 (20人规模)</h3>
+                <span class="badge badge-subtle" id="online-count">3 在线</span>
+              </div>
+              <ul class="peer-list" id="peer-list-container">
+                <!-- 动态渲染联系人 -->
+              </ul>
+            </div>
+
+            <div class="chat-viewport">
+              <div class="chat-header" id="chat-active-header">
+                <div class="chat-target-meta">
+                  <h4 id="chat-target-name">张工 (后端架构)</h4>
+                  <span class="peer-ip-badge" id="chat-target-ip">100.64.0.2</span>
+                  <div class="link-badge badge-p2p" id="chat-link-badge">
+                    <span class="dot"></span>
+                    <span id="chat-link-text">DIRECT P2P (5ms)</span>
+                  </div>
+                </div>
+                <div class="chat-actions">
+                  <button id="btn-probe-link" class="btn btn-xs btn-primary">3s 竞速探测</button>
+                  <button id="btn-simulate-sym" class="btn btn-xs btn-amber">模拟对称 NAT 快速降级</button>
+                </div>
+              </div>
+
+              <div class="chat-messages" id="chat-messages-box">
+                <!-- 聊天消息流 -->
+              </div>
+
+              <div class="chat-input-bar">
+                <input type="text" id="chat-text-input" placeholder="输入点对点加密消息... (按 Enter 发送)" autocomplete="off">
+                <button id="btn-send-message" class="btn btn-primary">发送</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 面板 2: 大文件直传 -->
+        <section id="tab-transfer" class="tab-pane">
+          <div class="transfer-layout">
+            <div class="card panel-card">
+              <div class="card-header">
+                <h3>点对点大文件直传引擎 (RFC 分块与断点续传)</h3>
+                <span class="badge badge-emerald">0 服务器中继带宽消耗</span>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone" id="upload-dropzone">
+                  <div class="drop-icon">📤</div>
+                  <p class="drop-title">拖拽待传输的大文件至此，或点击选择本地文件</p>
+                  <p class="drop-hint">系统将自动切分为 <strong>2MB 标准分块</strong>，计算 SHA-256 哈希并通过虚拟 IP 直接推送到对端内存协议栈</p>
+                  <input type="file" id="file-picker" style="display:none">
+                  <button id="btn-browse-file" class="btn btn-secondary">浏览文件</button>
+                </div>
+
+                <div class="transfer-control-grid">
+                  <div class="control-group">
+                    <label for="transfer-target-select">接收端节点:</label>
+                    <select id="transfer-target-select" class="form-select">
+                      <option value="100.64.0.2">张工 (100.64.0.2) [P2P 直连]</option>
+                      <option value="100.64.0.3">李工 (100.64.0.3) [DERP 中继]</option>
+                      <option value="100.64.0.10">核心开发机 dev-linux (100.64.0.10)</option>
+                    </select>
+                  </div>
+                  <div class="control-group">
+                    <button id="btn-start-transfer" class="btn btn-primary">开始直传</button>
+                  </div>
+                </div>
+
+                <div class="transfer-progress-card" id="transfer-progress-box">
+                  <div class="progress-title-row">
+                    <span id="trans-file-name">Ubuntu-22.04.4-desktop-amd64.iso (4.6 GB)</span>
+                    <span id="trans-speed">86.4 MB/s (物理带宽直连)</span>
+                  </div>
+                  <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="trans-bar" style="width: 45%;"></div>
+                  </div>
+                  <div class="progress-meta-row">
+                    <span>分块进度: <strong id="trans-chunks">1035 / 2300 (2MB/块)</strong></span>
+                    <span>状态: <span class="badge badge-emerald" id="trans-state">传输中 (Direct P2P)</span></span>
+                    <span>服务器流量计费: <strong>0.00 MB</strong></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 面板 3: 在线会议 (LiveKit SFU) -->
+        <section id="tab-meeting" class="tab-pane">
+          <div class="meeting-layout">
+            <div class="meeting-topbar">
+              <div class="meeting-info">
+                <h3>房间: 核心研发架构评审会 (LiveKit SFU)</h3>
+                <span class="badge badge-subtle">并发模式: 1人屏幕共享 + 19人全员语音</span>
+              </div>
+              <div class="meeting-controls">
+                <button class="btn btn-sm btn-outline" id="btn-toggle-mic">🎤 麦克风 (开)</button>
+                <button class="btn btn-sm btn-outline" id="btn-toggle-cam">📷 摄像头 (关)</button>
+                <button class="btn btn-sm btn-primary" id="btn-toggle-share">🖥️ 屏幕共享 (1080p)</button>
+                <button class="btn btn-sm btn-danger" id="btn-leave-meeting">离开会议</button>
+              </div>
+            </div>
+
+            <div class="meeting-stage">
+              <div class="stage-screen" id="stage-screen">
+                <div class="screen-canvas-placeholder">
+                  <div class="canvas-badge">主讲人屏幕共享 (1.5 Mbps / 1080p @ 30fps)</div>
+                  <div class="canvas-mock-content">
+                    <pre><code>// 架构契约推导: VPS 100M 上下行承载
+Ingress = 1.5M (Video) + 20 * 0.04M (Audio) = 2.3 Mbps
+Egress  = 19 * 1.5M + 20 * 3 * 0.04M = 30.9 Mbps (&lt; 45M 安全承载区)
+VAD 静音抑制: 自动激活 (仅推送最高声量 3 路音频)</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <div class="gallery-strip" id="gallery-strip">
+                <!-- 参会者网格视频流 (Dynacast / Simulcast 自动压制为 180p / 360p) -->
+              </div>
+            </div>
+
+            <div class="meeting-footer-bar">
+              <div class="meeting-stat-chip">
+                <span>SFU 实时出口:</span>
+                <strong class="text-emerald" id="stat-sfu-egress">31.4 Mbps (安全承载)</strong>
+              </div>
+              <div class="meeting-stat-chip">
+                <span>Dynacast 分流引擎:</span>
+                <strong class="text-sky">已开启 (非可视窗口停发)</strong>
+              </div>
+              <div class="meeting-stat-chip">
+                <span>Simulcast 分层编码:</span>
+                <strong class="text-indigo">小窗降级至 180p (80 kbps)</strong>
+              </div>
+              <div class="meeting-stat-chip">
+                <span>VAD 语音通道:</span>
+                <strong class="text-amber">Top 3 活动流推送</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 面板 4: 开发者工具箱 (Target Server P2P Access) -->
+        <section id="tab-dev" class="tab-pane">
+          <div class="dev-layout">
+            <div class="dev-header-card">
+              <div>
+                <h3>目标开发服务器直连网关 (Target Server P2P Access)</h3>
+                <p class="dev-desc">研发人员 (<code>tag:dev</code>) 通过客户端内置用户态本地 SOCKS5 代理 (<code>127.0.0.1:1055</code>)，以零驱动、免管理员提权方式直连目标机敏感端口。</p>
+              </div>
+              <div class="dev-gateway-status">
+                <span class="status-indicator online"></span>
+                <span>本地代理网关: <strong>127.0.0.1:1055</strong></span>
+              </div>
+            </div>
+
+            <div class="dev-servers-grid" id="dev-servers-container">
+              <!-- 动态渲染受保护目标服务器 -->
+            </div>
+
+            <div class="card ssh-guide-card">
+              <div class="card-header">
+                <h4>开发工具链一键接入指南 (零驱动提权)</h4>
+                <button id="btn-copy-ssh" class="btn btn-xs btn-outline">复制 OpenSSH 配置</button>
+              </div>
+              <div class="card-body">
+                <p class="text-muted">将以下配置保存至本地 <code>~/.ssh/config</code>，即可在系统原生终端或 <strong>VS Code Remote - SSH</strong> 中直接运行 <code>ssh dev-server</code>：</p>
+                <pre class="code-block" id="ssh-config-preview"><code>Host dev-server
+    HostName 100.64.0.10
+    User root
+    # Linux / macOS 原生 OpenSSH:
+    ProxyCommand nc -X 5 -x 127.0.0.1:1055 %h %p
+    # Windows 10/11 原生 OpenSSH 支持 (通过代理直接打洞直连):
+    # ProxyCommand connect -S 127.0.0.1:1055 %h %p
+    StrictHostKeyChecking no
+    ServerAliveInterval 15</code></pre>
+                
+                <div class="db-guide-row">
+                  <strong>DBeaver / Navicat 数据库直连设置:</strong>
+                  <span>在新建 MySQL/PG 连接时，勾选 <code>网络代理 (SOCKS5)</code>，主机填写 <code>127.0.0.1</code>，端口 <code>1055</code>，目标主机填写 <code>100.64.0.10:3306</code> 即可。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

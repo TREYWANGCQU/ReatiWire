@@ -1,0 +1,34 @@
+// collaboration_tool_solution/team_collab/deploy/headscale/acl.hujson
+{
+  // 20人轻量小团队 Headscale 访问控制策略 (ACL Policy)
+  // 实施研发人员 (tag:dev) 与目标服务器 (tag:server) 最小特权隔离
+  "tagOwners": {
+    "tag:server": ["group:admin"],
+    "tag:dev": ["group:admin"]
+  },
+  "groups": {
+    "group:admin": ["admin@team-collab.local"],
+    "group:devs": ["engineer@team-collab.local"],
+    "group:members": ["member@team-collab.local"]
+  },
+  "acls": [
+    // 1. 全体团队成员内部网内互通 (P2P IM / 文件分块直传 / 1v1 音视频直连)
+    {
+      "action": "accept",
+      "src": ["100.64.0.0/10"],
+      "dst": ["100.64.0.0/10:*"]
+    },
+    // 2. 研发人员 (tag:dev) 经由客户端内置本地 SOCKS5 代理网关直连目标开发服务器 (tag:server)
+    {
+      "action": "accept",
+      "src": ["tag:dev"],
+      "dst": [
+        "tag:server:22",   // SSH / VS Code Remote
+        "tag:server:3306", // MySQL / 开发数据库
+        "tag:server:8080", // 内部微服务与 API
+        "tag:server:6379"  // 开发 Redis
+      ]
+    }
+    // 3. 普通协同成员默认隔离，无法探测及访问 tag:server 敏感端口
+  ]
+}
