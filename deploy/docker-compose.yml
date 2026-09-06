@@ -1,5 +1,5 @@
 # collaboration_tool_solution/team_collab/deploy/docker-compose.yml
-version: '3.8'
+version: '3.5'
 
 services:
   # Redis: LiveKit 房间多节点状态缓存与信令同步总线

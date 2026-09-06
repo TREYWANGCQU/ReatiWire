@@ -1,0 +1,14 @@
+{
+  "server": {
+    "control_url": "https://headscale.reati-wire.local:8018",
+    "livekit_url": "https://sfu.reati-wire.local:7880"
+  },
+  "client": {
+    "hostname": "reati-dev-zhangsan",
+    "auth_key": "hs_key_9f83a04bc61244e8bc1a4c49d8e3b5e1",
+    "state_dir": "./data/tsnet_state",
+    "ephemeral": false,
+    "socks5_listen": "127.0.0.1:1055",
+    "web_listen": "127.0.0.1:34115"
+  }
+}

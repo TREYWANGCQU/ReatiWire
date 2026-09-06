@@ -1,19 +1,167 @@
-// collaboration_tool_solution/team_collab/frontend/src/main.js
+// frontend/src/main.js
 
 let activePeer = '100.64.0.2';
 let peersData = [];
 let devServersData = [];
+let appConfig = null;
+let authKeyMasked = true;
 
 // DOM Ready
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   initTabs();
   initSystemRibbon();
   initIM();
   initTransfer();
   initMeeting();
   initDevToolbox();
+  initUserConfig();
+  await loadConfig();
   loadInitialData();
 });
+
+// 加载前端运行时静态配置文件 (方式 A: config.json，api_key 与 api_secret 已彻底剔除)
+async function loadConfig() {
+  try {
+    let res = await fetch('/api/config');
+    if (!res.ok) {
+      res = await fetch('/config.json');
+    }
+    if (!res.ok) {
+      res = await fetch('/public/config.json');
+    }
+    if (res.ok) {
+      appConfig = await res.json();
+      applyConfig(appConfig);
+    }
+  } catch (err) {
+    console.warn('[Config] 未能获取前端 config.json，保持默认内置配置', err);
+  }
+}
+
+function maskSecret(str) {
+  if (!str) return '—';
+  if (str.length <= 8) return '••••••••';
+  return str.slice(0, 7) + '••••••••••••••••••••••••';
+}
+
+function renderAuthKey() {
+  const elAuthKey = document.getElementById('cfg-client-authkey');
+  const btnToggle = document.getElementById('btn-toggle-authkey');
+  if (!elAuthKey || !appConfig || !appConfig.client) return;
+  const raw = appConfig.client.auth_key || '';
+  if (authKeyMasked) {
+    elAuthKey.textContent = maskSecret(raw);
+    if (btnToggle) btnToggle.textContent = '👁️ 查看';
+  } else {
+    elAuthKey.textContent = raw;
+    if (btnToggle) btnToggle.textContent = '🔒 掩码';
+  }
+}
+
+function applyConfig(cfg) {
+  if (!cfg) return;
+
+  // 1. 系统状态横栏动态绑定
+  if (cfg.client && cfg.client.socks5_listen) {
+    const stateEl = document.getElementById('val-socks5-state');
+    if (stateEl && stateEl.textContent.includes('运行中')) {
+      stateEl.textContent = `运行中 (${cfg.client.socks5_listen})`;
+    }
+  }
+
+  // 2. 客户端节点自查卡片字段
+  if (cfg.client) {
+    const elHostname = document.getElementById('cfg-client-hostname');
+    if (elHostname) elHostname.textContent = cfg.client.hostname || '—';
+
+    const elStateDir = document.getElementById('cfg-client-statedir');
+    if (elStateDir) elStateDir.textContent = cfg.client.state_dir || '—';
+
+    const elEphemeral = document.getElementById('cfg-client-ephemeral');
+    if (elEphemeral) {
+      elEphemeral.innerHTML = cfg.client.ephemeral
+        ? '<span class="badge badge-amber">true (临时节点/断开自注销)</span>'
+        : '<span class="badge badge-subtle">false (长周期静态纳管)</span>';
+    }
+
+    const elSocks5 = document.getElementById('cfg-client-socks5');
+    if (elSocks5) elSocks5.textContent = cfg.client.socks5_listen || '—';
+
+    const elWebListen = document.getElementById('cfg-client-weblisten');
+    if (elWebListen) elWebListen.textContent = cfg.client.web_listen || '—';
+
+    renderAuthKey();
+  }
+
+  // 3. 控制端与服务中继自查卡片字段 (仅包含端点 URL，无任何私密 api_key/api_secret)
+  if (cfg.server) {
+    const elControlUrl = document.getElementById('cfg-server-controlurl');
+    if (elControlUrl) elControlUrl.textContent = cfg.server.control_url || '—';
+
+    const elLivekitUrl = document.getElementById('cfg-server-livekiturl');
+    if (elLivekitUrl) elLivekitUrl.textContent = cfg.server.livekit_url || '—';
+  }
+
+  // 4. 原始 JSON 只读预览高亮渲染 (安全脱敏保证)
+  const elJsonPreview = document.getElementById('config-json-preview');
+  if (elJsonPreview) {
+    elJsonPreview.innerHTML = `<code>${escapeHTML(JSON.stringify(cfg, null, 2))}</code>`;
+  }
+}
+
+// 用户配置自查面板交互事件 (只读审计)
+function initUserConfig() {
+  // 顶栏快速跳转自查标签页
+  const btnInspect = document.getElementById('btn-inspect-config');
+  if (btnInspect) {
+    btnInspect.addEventListener('click', () => {
+      const navConfig = document.getElementById('nav-tab-config');
+      if (navConfig) navConfig.click();
+    });
+  }
+
+  // 复制完整只读配置 JSON
+  const btnCopy = document.getElementById('btn-copy-config-json');
+  if (btnCopy) {
+    btnCopy.addEventListener('click', async () => {
+      if (!appConfig) return;
+      const text = JSON.stringify(appConfig, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        btnCopy.textContent = '已复制到剪贴板!';
+        setTimeout(() => { btnCopy.textContent = '📋 复制完整配置'; }, 2000);
+      } catch {
+        alert('复制配置成功: 请在原始代码预览框手动全选复制');
+      }
+    });
+  }
+
+  // 重新从本地载入最新配置
+  const btnReload = document.getElementById('btn-reload-config');
+  if (btnReload) {
+    btnReload.addEventListener('click', async () => {
+      btnReload.textContent = '载入中...';
+      btnReload.disabled = true;
+      await loadConfig();
+      btnReload.textContent = '已刷新最新配置';
+      setTimeout(() => {
+        btnReload.textContent = '🔄 重新载入';
+        btnReload.disabled = false;
+      }, 1500);
+    });
+  }
+
+  // 预授权密钥掩码切换
+  const btnToggleAuth = document.getElementById('btn-toggle-authkey');
+  if (btnToggleAuth) {
+    btnToggleAuth.addEventListener('click', () => {
+      authKeyMasked = !authKeyMasked;
+      renderAuthKey();
+    });
+  }
+}
+
+
 
 // 1. 选项卡切换控制
 function initTabs() {

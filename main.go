@@ -35,6 +35,34 @@ func main() {
 		_ = json.NewEncoder(w).Encode(app.GetSystemOverview())
 	})
 
+	// 1.1 API: 获取客户端只读配置 (供前端安全自查，api_key 与 api_secret 已全面物理移除)
+	mux.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		configPath := filepath.Join(".", "config.json")
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			configPath = filepath.Join(".", "frontend", "public", "config.json")
+			data, err = os.ReadFile(configPath)
+		}
+		if err != nil {
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"server": map[string]string{
+					"control_url": "https://headscale.reati-wire.local:8018",
+					"livekit_url": "https://sfu.reati-wire.local:7880",
+				},
+				"client": map[string]interface{}{
+					"hostname":      "reati-dev-zhangsan",
+					"socks5_listen": "127.0.0.1:1055",
+					"web_listen":    "127.0.0.1:34115",
+					"state_dir":     "./data/tsnet_state",
+					"ephemeral":     false,
+				},
+			})
+			return
+		}
+		_, _ = w.Write(data)
+	})
+
 	// 2. API: 获取联系人列表
 	mux.HandleFunc("/api/peers", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

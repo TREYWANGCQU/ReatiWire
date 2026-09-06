@@ -42,6 +42,7 @@
         </div>
         <div class="ribbon-action">
           <button id="btn-toggle-proxy" class="btn btn-sm btn-outline">重启本地代理</button>
+          <button id="btn-inspect-config" class="btn btn-sm btn-outline" title="查看当前客户端运行配置">⚙️ 配置自查</button>
         </div>
       </div>
     </header>
@@ -66,6 +67,10 @@
           <li class="nav-item" data-tab="tab-dev" id="nav-tab-dev">
             <span class="nav-icon">🛠️</span>
             <span class="nav-text">开发者工具箱</span>
+          </li>
+          <li class="nav-item" data-tab="tab-config" id="nav-tab-config">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">用户配置自查</span>
           </li>
         </ul>
 
@@ -266,6 +271,131 @@ VAD 静音抑制: 自动激活 (仅推送最高声量 3 路音频)</code></pre>
                 <div class="db-guide-row">
                   <strong>DBeaver / Navicat 数据库直连设置:</strong>
                   <span>在新建 MySQL/PG 连接时，勾选 <code>网络代理 (SOCKS5)</code>，主机填写 <code>127.0.0.1</code>，端口 <code>1055</code>，目标主机填写 <code>100.64.0.10:3306</code> 即可。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 面板 5: 用户配置自查 (Read-Only Client Configuration) -->
+        <section id="tab-config" class="tab-pane">
+          <div class="config-layout">
+            <div class="config-header-card">
+              <div>
+                <div class="config-header-row">
+                  <h3>客户端用户配置自查 (Client Configuration & Runtime Identity)</h3>
+                  <span class="badge badge-amber">🔒 只读安全保护 · 不支持在线修改</span>
+                </div>
+                <p class="config-desc">
+                  当前节点依据<strong>方式 A：配置文件驱动</strong>运行。核心鉴权密钥、Headscale 控制端与 WireGuard 网络拓扑参数由客户端本地 <code>config.json</code> 静态装载并固化。为防止网络越权与租户配置漂移，前端表现层仅提供自查与排障审计视图，禁止进行在线篡改。
+                </p>
+              </div>
+              <div class="config-header-actions">
+                <button id="btn-reload-config" class="btn btn-sm btn-secondary">🔄 重新载入</button>
+                <button id="btn-copy-config-json" class="btn btn-sm btn-primary">📋 复制完整配置</button>
+              </div>
+            </div>
+
+            <!-- 配置明细双栏网格 -->
+            <div class="config-grid">
+              <!-- 卡片 1: 客户端节点与网络身份 -->
+              <div class="card config-card">
+                <div class="card-header">
+                  <div class="card-header-title">
+                    <span class="icon">💻</span>
+                    <h4>客户端节点与协议栈身份 (client)</h4>
+                  </div>
+                  <span class="badge badge-emerald">tsnet 用户态纳管</span>
+                </div>
+                <div class="card-body config-fields">
+                  <div class="config-field-row">
+                    <span class="field-label">节点主机名 (hostname)</span>
+                    <span class="field-value font-mono highlight" id="cfg-client-hostname">reati-dev-zhangsan</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">虚拟 IP (Virtual IP)</span>
+                    <span class="field-value font-mono text-emerald" id="cfg-client-vip">100.64.0.5</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">预授权密钥 (auth_key)</span>
+                    <div class="field-secret-wrap">
+                      <span class="field-value font-mono text-muted" id="cfg-client-authkey">hs_key_••••••••••••••••••••••••</span>
+                      <button id="btn-toggle-authkey" class="btn-text-action" title="切换显示/掩码">👁️ 查看</button>
+                    </div>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">状态持久化目录 (state_dir)</span>
+                    <span class="field-value font-mono" id="cfg-client-statedir">./data/tsnet_state</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">临时节点模式 (ephemeral)</span>
+                    <span class="field-value" id="cfg-client-ephemeral"><span class="badge badge-subtle">false (长周期静态纳管)</span></span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">本地 SOCKS5 代理 (socks5_listen)</span>
+                    <span class="field-value font-mono text-amber" id="cfg-client-socks5">127.0.0.1:1055</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">Web 面板监听 (web_listen)</span>
+                    <span class="field-value font-mono text-sky" id="cfg-client-weblisten">127.0.0.1:34115</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 卡片 2: 控制端与媒体服务端点 -->
+              <div class="card config-card">
+                <div class="card-header">
+                  <div class="card-header-title">
+                    <span class="icon">🌐</span>
+                    <h4>控制平面与音视频端点 (server)</h4>
+                  </div>
+                  <span class="badge badge-sky">TLS 零信任接入</span>
+                </div>
+                <div class="card-body config-fields">
+                  <div class="config-field-row">
+                    <span class="field-label">Headscale 控制端 (control_url)</span>
+                    <span class="field-value font-mono text-sky" id="cfg-server-controlurl">https://headscale.reati-wire.local:8018</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">LiveKit SFU 会议 (livekit_url)</span>
+                    <span class="field-value font-mono text-indigo" id="cfg-server-livekiturl">https://sfu.reati-wire.local:7880</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">媒体服务鉴权模式</span>
+                    <span class="field-value font-mono text-emerald">服务端单向签发 (JWT Token)</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">LiveKit 根私钥状态</span>
+                    <span class="field-value font-mono text-emerald"><span class="badge badge-emerald">已全面从客户端移除</span></span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">硬熔断超时基线 (T_timeout)</span>
+                    <span class="field-value font-mono text-indigo">3000 ms (不可修改)</span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">VPS 出口带宽保护上限</span>
+                    <span class="field-value font-mono text-amber">85 Mbps (警戒阈值)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 原始 JSON 只读预览与安全合规提示 -->
+            <div class="card config-json-card">
+              <div class="card-header">
+                <div class="card-header-title">
+                  <span class="icon">📄</span>
+                  <h4>当前装载的本地配置定义 (config.json)</h4>
+                </div>
+                <div class="config-file-source">
+                  <span class="badge badge-subtle" id="cfg-source-indicator">来源: ./config.json (只读)</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <pre class="code-block" id="config-json-preview"><code>// 正在加载运行时配置...</code></pre>
+                <div class="config-audit-notice">
+                  <span class="notice-icon">🛡️</span>
+                  <span><strong>安全合规说明：</strong>客户端通信建立在 Tailscale / Headscale 双向公私钥与预授权凭据之上。为保证研发直连隧道（100.64.0.0/10）及开发机 ACL 访问控制列表（acl.hujson）的确定性，配置修改请由团队运维管理员在服务端或通过部署脚本进行更新，客户端运行时不开放表单在线覆写能力。</span>
                 </div>
               </div>
             </div>
