@@ -93,3 +93,53 @@ func (cm *ChatManager) GetAllPeers() []*PeerPresence {
 	}
 	return peers
 }
+
+// SyncPeers 全量同步对端节点列表 (生产模式由 Tailnet 拓扑驱动)
+func (cm *ChatManager) SyncPeers(peers []*PeerPresence) {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	newMap := make(map[string]*PeerPresence)
+	for _, p := range peers {
+		if p != nil && p.IP != "" {
+			newMap[p.IP] = p
+		}
+	}
+	cm.peers = newMap
+}
+
+// ResetToMockPeers 重置为预设离线仿真成员列表 (仿真模式演示基线)
+func (cm *ChatManager) ResetToMockPeers() {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	cm.peers = make(map[string]*PeerPresence)
+	cm.peers["100.64.0.2"] = &PeerPresence{
+		IP:          "100.64.0.2",
+		Name:        "张工 (后端架构)",
+		Role:        "dev",
+		IsOnline:    true,
+		IsDirectP2P: true,
+		LatencyMs:   5,
+		LastSeen:    time.Now(),
+	}
+	cm.peers["100.64.0.3"] = &PeerPresence{
+		IP:          "100.64.0.3",
+		Name:        "李工 (前端/移动端)",
+		Role:        "dev",
+		IsOnline:    true,
+		IsDirectP2P: false,
+		LatencyMs:   21,
+		LastSeen:    time.Now(),
+	}
+	cm.peers["100.64.0.4"] = &PeerPresence{
+		IP:          "100.64.0.4",
+		Name:        "王运营 (产品交付)",
+		Role:        "member",
+		IsOnline:    true,
+		IsDirectP2P: true,
+		LatencyMs:   8,
+		LastSeen:    time.Now(),
+	}
+}
+

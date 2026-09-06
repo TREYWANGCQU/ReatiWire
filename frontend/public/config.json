@@ -9,6 +9,6 @@
     "state_dir": "./data/tsnet_state",
     "ephemeral": false,
     "socks5_listen": "127.0.0.1:1055",
-    "web_listen": "127.0.0.1:34115"
+    "web_listen": "内置内存桥接 (零端口暴露)"
   }
 }

@@ -23,15 +23,17 @@ type NodeConfig struct {
 
 // NodeStatus 用户态节点运行指标
 type NodeStatus struct {
-	Hostname    string   `json:"hostname"`
-	TailnetIP   string   `json:"tailnet_ip"` // 100.64.0.x
-	IsConnected bool     `json:"is_connected"`
-	PeersCount  int      `json:"peers_count"`
-	DerpRegion  string   `json:"derp_region"` // Region 901 (cqq-prv)
-	Tags        []string `json:"tags"`        // e.g. ["tag:dev"]
+	Hostname    string      `json:"hostname"`
+	TailnetIP   string      `json:"tailnet_ip"` // 100.64.0.x
+	IsConnected bool        `json:"is_connected"`
+	PeersCount  int         `json:"peers_count"`
+	DerpRegion  string      `json:"derp_region"` // Region 901 (cqq-prv)
+	Tags        []string    `json:"tags"`        // e.g. ["tag:dev"]
+	Mode        RuntimeMode `json:"mode"`        // SIMULATION | PRODUCTION
+	Reason      string      `json:"reason"`      // 状态原因或降级说明
 }
 
-// NodeManager 用户态 WireGuard 网络生命周期管理器 (封装 tsnet)
+// NodeManager 用户态 WireGuard 网络生命周期管理器 (封装 tsnet，支持仿真模式)
 type NodeManager struct {
 	mu          sync.RWMutex
 	cfg         NodeConfig
@@ -141,5 +143,45 @@ func (nm *NodeManager) GetStatus() NodeStatus {
 		PeersCount:  4, // 当前拓扑激活节点计数
 		DerpRegion:  "Region 901 (cqq-prv)",
 		Tags:        []string{"tag:dev"},
+		Mode:        ModeSimulation,
+		Reason:      "离线交互仿真基线 (无外部中心依赖)",
 	}
+}
+
+// GetMode 返回当前节点管理器运行模式
+func (nm *NodeManager) GetMode() RuntimeMode {
+	return ModeSimulation
+}
+
+// GetPeers 获取当前拓扑节点列表
+func (nm *NodeManager) GetPeers(ctx context.Context) ([]PeerInfo, error) {
+	return []PeerInfo{
+		{
+			IP:          "100.64.0.2",
+			Hostname:    "张工 (后端架构)",
+			Role:        "dev",
+			IsOnline:    true,
+			IsDirectP2P: true,
+			LatencyMs:   5,
+			LastSeen:    time.Now(),
+		},
+		{
+			IP:          "100.64.0.3",
+			Hostname:    "李工 (前端/移动端)",
+			Role:        "dev",
+			IsOnline:    true,
+			IsDirectP2P: false,
+			LatencyMs:   21,
+			LastSeen:    time.Now(),
+		},
+		{
+			IP:          "100.64.0.4",
+			Hostname:    "王运营 (产品交付)",
+			Role:        "member",
+			IsOnline:    true,
+			IsDirectP2P: true,
+			LatencyMs:   8,
+			LastSeen:    time.Now(),
+		},
+	}, nil
 }

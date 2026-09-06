@@ -1,0 +1,16 @@
+// config.example.json
+{
+  "mode": "auto",
+  "server": {
+    "control_url": "https://headscale.your-domain.com:8018",
+    "livekit_url": "https://sfu.your-domain.com:7880"
+  },
+  "client": {
+    "hostname": "reati-client-workstation",
+    "auth_key": "hs_key_your_actual_preauth_key_from_headscale",
+    "state_dir": "./data/tsnet_state",
+    "ephemeral": false,
+    "socks5_listen": "127.0.0.1:1055",
+    "web_listen": "内置内存桥接 (零端口暴露)"
+  }
+}

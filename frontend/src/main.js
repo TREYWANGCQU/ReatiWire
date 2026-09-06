@@ -61,7 +61,35 @@ function renderAuthKey() {
 function applyConfig(cfg) {
   if (!cfg) return;
 
-  // 1. 系统状态横栏动态绑定
+  // 1. 系统状态横栏与运行模式动态绑定
+  const isProd = cfg.runtime_mode === 'PRODUCTION';
+  const badgeMode = document.getElementById('badge-runtime-mode');
+  if (badgeMode) {
+    if (isProd) {
+      badgeMode.className = 'badge badge-production';
+      badgeMode.textContent = '生产联机';
+    } else {
+      badgeMode.className = 'badge badge-simulation';
+      badgeMode.textContent = '仿真演示';
+    }
+  }
+
+  const elModeBadge = document.getElementById('cfg-runtime-mode-badge');
+  if (elModeBadge) {
+    if (isProd) {
+      elModeBadge.className = 'badge badge-production';
+      elModeBadge.textContent = '生产联机模式 (真实 Tailnet 接入)';
+    } else {
+      elModeBadge.className = 'badge badge-simulation';
+      elModeBadge.textContent = '仿真演示模式 (离线交互原型)';
+    }
+  }
+
+  const elModeReason = document.getElementById('cfg-runtime-mode-reason');
+  if (elModeReason) {
+    elModeReason.textContent = cfg.mode_reason || (isProd ? '已接入 Headscale 真实网络' : '未检测到可用生产配置，保持离线仿真');
+  }
+
   if (cfg.client && cfg.client.socks5_listen) {
     const stateEl = document.getElementById('val-socks5-state');
     if (stateEl && stateEl.textContent.includes('运行中')) {
@@ -397,20 +425,9 @@ function initDevToolbox() {
   });
 }
 
-// 7. 加载后端初始化数据
+// 7. 加载后端初始化数据与双轨运行状态
 async function loadInitialData() {
-  try {
-    const peersRes = await fetch('/api/peers');
-    peersData = await peersRes.json();
-    renderPeerList(peersData);
-  } catch {
-    peersData = [
-      { ip: '100.64.0.2', name: '张工 (后端架构)', role: 'dev', is_online: true, is_direct_p2p: true, latency_ms: 5 },
-      { ip: '100.64.0.3', name: '李工 (前端/移动端)', role: 'dev', is_online: true, is_direct_p2p: false, latency_ms: 21 },
-      { ip: '100.64.0.4', name: '王运营 (产品交付)', role: 'member', is_online: true, is_direct_p2p: true, latency_ms: 8 }
-    ];
-    renderPeerList(peersData);
-  }
+  await refreshPeersAndStatus();
 
   try {
     const devRes = await fetch('/api/dev-servers');
@@ -447,15 +464,103 @@ async function loadInitialData() {
     latency_ms: 5,
     outgoing: false
   });
+
+  // 生产模式或在线状态自动轮询 (每 5 秒刷新一次节点拓扑)
+  setInterval(refreshPeersAndStatus, 5000);
+}
+
+// 刷新状态与拓扑
+async function refreshPeersAndStatus() {
+  try {
+    const statusRes = await fetch('/api/status');
+    if (statusRes.ok) {
+      const statusData = await statusRes.json();
+      if (statusData.node_status) {
+        const valIp = document.getElementById('val-virtual-ip');
+        if (valIp && statusData.node_status.tailnet_ip) {
+          valIp.textContent = statusData.node_status.tailnet_ip;
+        }
+
+        const valTsnet = document.getElementById('val-tsnet-state');
+        if (valTsnet) {
+          if (statusData.runtime_mode === 'PRODUCTION') {
+            valTsnet.textContent = '生产纳管 (WireGuard)';
+            valTsnet.className = 'ribbon-value text-emerald';
+          } else {
+            valTsnet.textContent = '仿真连通 (免提权)';
+            valTsnet.className = 'ribbon-value text-sky';
+          }
+        }
+
+        const badgeMode = document.getElementById('badge-runtime-mode');
+        if (badgeMode) {
+          if (statusData.runtime_mode === 'PRODUCTION') {
+            badgeMode.className = 'badge badge-production';
+            badgeMode.textContent = '生产联机';
+          } else {
+            badgeMode.className = 'badge badge-simulation';
+            badgeMode.textContent = '仿真演示';
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.debug('[Status] 状态轮询回退', err);
+  }
+
+  try {
+    const peersRes = await fetch('/api/peers');
+    if (peersRes.ok) {
+      peersData = await peersRes.json();
+      renderPeerList(peersData);
+    }
+  } catch {
+    if (!peersData || peersData.length === 0) {
+      peersData = [
+        { ip: '100.64.0.2', name: '张工 (后端架构)', role: 'dev', is_online: true, is_direct_p2p: true, latency_ms: 5 },
+        { ip: '100.64.0.3', name: '李工 (前端/移动端)', role: 'dev', is_online: true, is_direct_p2p: false, latency_ms: 21 },
+        { ip: '100.64.0.4', name: '王运营 (产品交付)', role: 'member', is_online: true, is_direct_p2p: true, latency_ms: 8 }
+      ];
+      renderPeerList(peersData);
+    }
+  }
 }
 
 function renderPeerList(peers) {
   const container = document.getElementById('peer-list-container');
+  if (!container) return;
+
+  const onlineCount = (peers || []).filter(p => p.is_online).length;
+  const countEl = document.getElementById('online-count');
+  if (countEl) {
+    countEl.textContent = `${onlineCount} 在线`;
+  }
+
+  if (!peers || peers.length === 0) {
+    container.innerHTML = `
+      <li class="empty-notice" style="padding: 24px 16px; text-align: center; color: #94a3b8; font-size: 0.82rem;">
+        当前 Tailnet 暂无其他在线成员
+      </li>
+    `;
+    return;
+  }
+
+  // 若当前选中的节点不在列表中，则重置为首个节点
+  if (!peers.some(p => p.ip === activePeer)) {
+    activePeer = peers[0].ip;
+    const firstPeer = peers[0];
+    const targetName = document.getElementById('chat-target-name');
+    const targetIp = document.getElementById('chat-target-ip');
+    if (targetName) targetName.textContent = firstPeer.name;
+    if (targetIp) targetIp.textContent = firstPeer.ip;
+    updateLinkBadge(firstPeer.is_direct_p2p ? 'DIRECT_P2P' : 'DERP_RELAY', firstPeer.latency_ms);
+  }
+
   container.innerHTML = peers.map(p => `
     <li class="peer-item ${p.ip === activePeer ? 'active' : ''}" data-ip="${p.ip}">
       <div class="peer-info">
-        <span class="peer-name">${p.name}</span>
-        <span class="peer-ip">${p.ip}</span>
+        <span class="peer-name">${escapeHTML(p.name)}</span>
+        <span class="peer-ip">${escapeHTML(p.ip)}</span>
       </div>
       <div class="link-badge ${p.is_direct_p2p ? 'badge-p2p' : 'badge-relay'}">
         <span class="dot"></span>

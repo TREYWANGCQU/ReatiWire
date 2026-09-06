@@ -24,6 +24,10 @@
       </div>
 
       <div class="status-ribbon">
+        <div class="ribbon-card" id="status-runtime-mode">
+          <span class="ribbon-label">运行模式</span>
+          <span class="ribbon-value" id="val-runtime-mode"><span class="badge badge-amber" id="badge-runtime-mode">仿真演示</span></span>
+        </div>
         <div class="ribbon-card" id="status-node-ip">
           <span class="ribbon-label">虚拟 IP</span>
           <span class="ribbon-value text-emerald" id="val-virtual-ip">100.64.0.5</span>
@@ -336,8 +340,8 @@ VAD 静音抑制: 自动激活 (仅推送最高声量 3 路音频)</code></pre>
                     <span class="field-value font-mono text-amber" id="cfg-client-socks5">127.0.0.1:1055</span>
                   </div>
                   <div class="config-field-row">
-                    <span class="field-label">Web 面板监听 (web_listen)</span>
-                    <span class="field-value font-mono text-sky" id="cfg-client-weblisten">127.0.0.1:34115</span>
+                    <span class="field-label">GUI 表现层绑定 (web_listen)</span>
+                    <span class="field-value font-mono text-emerald" id="cfg-client-weblisten">内置内存桥接 (零端口暴露)</span>
                   </div>
                 </div>
               </div>
@@ -365,8 +369,12 @@ VAD 静音抑制: 自动激活 (仅推送最高声量 3 路音频)</code></pre>
                     <span class="field-value font-mono text-emerald">服务端单向签发 (JWT Token)</span>
                   </div>
                   <div class="config-field-row">
-                    <span class="field-label">LiveKit 根私钥状态</span>
-                    <span class="field-value font-mono text-emerald"><span class="badge badge-emerald">已全面从客户端移除</span></span>
+                    <span class="field-label">双轨运行模式</span>
+                    <span class="field-value font-mono" id="cfg-runtime-mode-val"><span class="badge badge-amber" id="cfg-runtime-mode-badge">仿真演示模式</span></span>
+                  </div>
+                  <div class="config-field-row">
+                    <span class="field-label">模式判定依据</span>
+                    <span class="field-value font-mono text-secondary" id="cfg-runtime-mode-reason" style="font-size: 0.75rem;">—</span>
                   </div>
                   <div class="config-field-row">
                     <span class="field-label">硬熔断超时基线 (T_timeout)</span>

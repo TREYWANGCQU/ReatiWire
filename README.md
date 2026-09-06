@@ -67,9 +67,9 @@ ReatiWire 采用**“数据面 P2P 直连优先 + 媒体面中心化 SFU 确定�
 
 ---
 
-## 3. Web 控制台功能界面与实测展示
+## 3. 客户端桌面控制台界面与实测展示
 
-客户端内置基于现代深色玻璃拟态 (Glassmorphism) 的高保真 Web 控制台（本地监听：`http://127.0.0.1:34115/`），涵盖四大核心生产力面板：
+客户端内置基于现代深色玻璃拟态 (Glassmorphism) 的高保真原生独立桌面控制台（Wails 原生窗体与系统级常驻，零外部 Web 端口暴露，前端通过进程内内存直接桥接），涵盖四大核心生产力面板：
 
 ### 3.1 即时通讯面板 (1v1 IM & 实时直连徽标)
 ![即时通讯与直连状态徽标](assets/screenshots/01_im_chat.png)
@@ -134,7 +134,7 @@ collaboration_tool_solution/team_collab/
 │       ├── index.css            # 现代深色玻璃拟态样式系统
 │       └── main.js              # 交互事件、实时探测、代理切换与网络徽标调度
 ├── app.go                       # Wails 宿主桥接控制器与业务暴露接口
-├── main.go                      # 客户端启动入口 (自动支持桌面模式与内嵌 Web 运行时)
+├── main.go                      # 客户端启动入口 (Wails 原生独立 GUI 窗体与内存级桥接)
 ├── go.mod                       # Go 模块定义
 ├── wails.json                   # Wails v2 客户端打包定义
 └── README.md                    # 本文档
@@ -154,49 +154,45 @@ chmod +x scripts/bootstrap.sh
 ```
 脚本将自动拉起 Headscale 控制端、私有 DERP (Region 901) 以及开启了带宽限制策略的 LiveKit SFU 集群。
 
-### 5.2 专用客户端本地运行 (开发与体验模式)
-客户端自带开箱即用的内嵌 Web 调试服务，可在任意普通开发机上秒级拉起与关闭：
+### 5.2 独立客户端本地研发与调试运行
+客户端采用 Go + Wails v2 原生架构，零外部 Web 控制端口暴露，所有前端交互通过进程内内存直接路由：
 
-#### 1. 终端启动服务
+#### 1. 前端静态编译
 ```bash
-# 步骤 1: 编译前端静态资源
 cd frontend
 npm install
 npm run build
 cd ..
+```
 
-# 步骤 2: 启动 Go 客户端核心与控制台
+#### 2. 本地直接拉起窗体
+```bash
+# 直接拉起 Wails 原生桌面窗体
 go run .
 ```
-启动成功后，终端将输出：
-- 用户态 WireGuard 虚拟 IP：`100.64.0.5`
-- 本地 SOCKS5 代理网关监听：`127.0.0.1:1055`
-- 客户端 Web 控制台地址：`http://127.0.0.1:34115`
+启动成功后将直接弹出现代深色原生窗口，终端指示：
+- 用户态 WireGuard 虚拟 IP：`100.64.0.5` (免操作系统管理员提权)
+- 本地 SOCKS5 代理网关监听：`127.0.0.1:1055` (供 SSH / VS Code / DB 直连目标开发机)
+- 客户端表现层：Wails 原生桌面独立窗体（内置内存级 AssetServer，全机零外部 Web 控制端口暴露，杜绝 Localhost CSRF 风险）
 
-在浏览器打开 [http://127.0.0.1:34115](http://127.0.0.1:34115) 即可全面操作体验。
+#### 3. 窗口生命周期与退出说明
+- **防误触常驻后台**：点击右上角关闭按钮 `X` 时，程序默认隐藏窗口并保持后台运行，SOCKS5 代理（`127.0.0.1:1055`）与 WireGuard P2P 隧道长效保活不掉线。
+- **重新激活窗口**：再次双击可执行程序即可瞬间唤醒前台主窗口。
+- **完全退出程序**：在运行终端直接按下 **`Ctrl + C`**（若提示 `Terminate batch job (Y/N)?`，输入 `Y` 回车），客户端网络栈与代理监听将优雅释放并退出。
 
-#### 2. 终端关闭服务
-- **前台终端快捷退出**：在运行该命令的终端窗口中直接按下 **`Ctrl + C`**（若提示 `Terminate batch job (Y/N)?`，输入 `Y` 回车）即可正常退出并释放端口与代理资源。
-- **命令行根据端口一键强制停止**（适用于终端已关闭、后台脱敏运行或端口占用的场景）：
-  ```powershell
-  # PowerShell 
-  Stop-Process -Id (Get-NetTCPConnection -LocalPort 34115).OwningProcess -Force
-  ```
-  ```cmd
-  # CMD / 命令提示符
-  for /f "tokens=5" %a in ('netstat -ano ^| findstr :34115') do taskkill /PID %a /F
-  ```
-  ```bash
-  # Linux / macOS
-  lsof -ti:34115 | xargs kill -9
-  ```
-
-### 5.3 独立绿色客户端打包 (Wails 生产二进制)
-在装有 Wails CLI 的构建机上，一键构建免安装便携二进制：
+### 5.3 独立绿色客户端打包发布 (Wails 生产二进制)
+在构建机上一键构建免安装便携独立 GUI 二进制：
 ```bash
-wails build
+# 方式 A: 采用标准 Go 工具链直接打包 (零 CGO 依赖，纯原生二进制)
+go build -tags production -ldflags "-s -w -H windowsgui" -o reati_wire.exe .
+
+# 方式 B: 采用 Wails CLI 构建标准分发包
+wails build -clean
 ```
-产物 `reati_wire.exe`（单文件约 25MB）分发给团队员工直接双击运行，无需管理员权限，开箱即用。
+打包产物 `reati_wire.exe` 为纯独立免安装绿色应用，分发给团队员工直接双击运行：
+- **纯独立原生窗体**：无需打开外部系统浏览器，双击直接弹窗，开箱即用。
+- **零安全暴露面**：宿主机不开放任何 HTTP Web 端口，物理杜绝同机恶意网页跨站探测。
+- **零驱动免提权**：依托用户态 `tsnet`，无需安装虚拟网卡驱动或 UAC 管理员提权。
 
 ---
 
