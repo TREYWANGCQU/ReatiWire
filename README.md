@@ -1,5 +1,7 @@
-<!-- collaboration_tool_solution/team_collab/README.md -->
+<!-- README.md -->
 # ReatiWire: 20人轻量小团队私有 IM 与在线会议协同系统
+
+[简体中文](README.md) | [English](README_EN.md)
 
 > **定位说明**：依据系统架构设计方案，ReatiWire 是专为 20 人高保密、高频研发小团队打造的**私有安全协同工作台与研发直连网关**。系统深度融合用户态 WireGuard 协议栈 (`tsnet`)、私有 DERP 快速熔断降级引擎、LiveKit SFU 选择性转发单元以及本地用户态 SOCKS5 代理网关，实现全链路零驱动提权、1v1 数据面物理零流量与 100M 公网 VPS 带宽确定性受控。
 
@@ -137,7 +139,8 @@ collaboration_tool_solution/team_collab/
 ├── main.go                      # 客户端启动入口 (Wails 原生独立 GUI 窗体与内存级桥接)
 ├── go.mod                       # Go 模块定义
 ├── wails.json                   # Wails v2 客户端打包定义
-└── README.md                    # 本文档
+├── README.md                    # 中文说明文档
+└── README_EN.md                 # 英文说明文档
 ```
 
 ---
